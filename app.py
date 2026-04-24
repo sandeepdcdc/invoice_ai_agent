@@ -11,7 +11,7 @@ if st.button("Process Invoice"):
     if file and branch_id:
 
         response = requests.post(
-            "http://localhost:5000/process",
+            "https://invoice-ai-agent-nafo.onrender.com/process",
             files={"file": file},
             data={"branch_id": branch_id}
         )
