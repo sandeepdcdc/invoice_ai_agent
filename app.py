@@ -13,6 +13,12 @@ button[kind="header"] {display: none;}
 </style>
 """
 
+st.set_page_config(
+    page_title="Invoice AI Agent",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
+
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 st.title("📄 Invoice AI Agent")
