@@ -23,15 +23,43 @@ header {visibility: hidden;}
 st.markdown("""
 <div style="
     background-color:#0F63AC;
-    padding:15px;
-    border-radius:8px;
+    padding:6px 10px;
+    border-radius:6px;
     text-align:center;
+    margin-bottom:12px;
 ">
-    <h2 style="color:white; margin:0;">
+    <span style="
+        color:white;
+        font-size:18px;
+        font-weight:600;
+    ">
         HMIS - Invoice Processing AI Agent
-    </h2>
+    </span>
 </div>
-<br>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<style>
+/* Hide menu + footer */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+
+/* Hide floating buttons */
+[data-testid="stToolbar"] {display:none !important;}
+[data-testid="stDecoration"] {display:none !important;}
+[data-testid="stStatusWidget"] {display:none !important;}
+button[kind="header"] {display:none !important;}
+</style>
+
+<script>
+// Force remove floating elements (important)
+const hideElements = () => {
+    const elements = window.parent.document.querySelectorAll('[data-testid="stDecoration"], [data-testid="stToolbar"], iframe');
+    elements.forEach(el => el.remove());
+};
+setInterval(hideElements, 1000);
+</script>
 """, unsafe_allow_html=True)
 
 button_style = """
