@@ -73,26 +73,31 @@ def extract_invoice_data(file_bytes, filename):
             if match:
                 invoice_no = match.group(1)
                 break
+       
     # ==============================
     # STEP 3: Extract Amount
     # ==============================
-    amount = "0"
+    amount = "0.00"
 
-    for line in text.split("\n"):
-        line = line.strip()
+    lines = text.split("\n")
 
-        if re.search(r'(total\s*due|grand\s*total)', line, re.IGNORECASE):
-            match = re.search(r'([\d,]+\.\d{2})', line)
-            if match:
-                amount = match.group(1)
-                break
+    # 1️⃣ Priority: Total Due / Grand Total
+    for line in lines:
+     line_clean = line.strip()
+     line_clean = re.sub(r'\s+', ' ', line_clean)
 
-    # fallback: last "Total"
-    if amount == "0":
-        matches = re.findall(r'Total[^\d]*([\d,]+\.\d{2})', text, re.IGNORECASE)
-        if matches:
-            amount = matches[-1]
+     if re.search(r'(total\s*due|grand\s*total)', line_clean, re.IGNORECASE):
+           match = re.search(r'([\d,]+\.\d{2})', line_clean)
+           if match:
+              amount = match.group(1)
+              break
 
+    # 2️⃣ Fallback: last "Total"
+    if amount == "0.00":
+       matches = re.findall(r'Total[^\d]*([\d,]+\.\d{2})', text, re.IGNORECASE)
+    if matches:
+        amount = matches[-1]
+
+    # 3️⃣ Cleanup
     amount = amount.replace(",", "")
-
-    return invoice_no, amount
+   
