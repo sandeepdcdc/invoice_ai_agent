@@ -41,18 +41,38 @@ def extract_invoice_data(file_bytes, filename):
     # ==============================
     # STEP 2: Extract Invoice Number
     # ==============================
+
     invoice_no = "Not Found"
 
-    for line in text.split("\n"):
-        line = line.strip()
+    # Pattern 1: Invoice # BPXINV-00550
+    match = re.search(
+    r'Invoice\s*#\s*([A-Z0-9\-]+)',
+    text,
+    re.IGNORECASE
+)
 
-        if re.search(r'invoice\s*(number|no\.?)', line, re.IGNORECASE):
-            parts = re.split(r'invoice\s*(number|no\.?)\s*[:\-]?\s*', line, flags=re.IGNORECASE)
+    # Pattern 2: Invoice No / Number
+    if not match:
+        match = re.search(
+        r'Invoice\s*(Number|No\.?)\s*[:\-]?\s*([A-Z0-9\-]+)',
+        text,
+        re.IGNORECASE
+    )
+    if match:
+        invoice_no = match.group(2)
 
-            if len(parts) > 2:
-                invoice_no = parts[-1].strip()
+    # If first pattern matched
+    else:
+     invoice_no = match.group(1)
+
+    # Fallback: try generic line-based extraction
+    if invoice_no == "Not Found":
+     for line in text.split("\n"):
+        if "invoice" in line.lower():
+            match = re.search(r'([A-Z0-9\-]{5,})', line)
+            if match:
+                invoice_no = match.group(1)
                 break
-
     # ==============================
     # STEP 3: Extract Amount
     # ==============================
