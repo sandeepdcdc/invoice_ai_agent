@@ -1,6 +1,20 @@
 import streamlit as st
 import requests
 
+import streamlit as st
+
+hide_streamlit_style = """
+<style>
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+.stDeployButton {display:none;}
+button[kind="header"] {display: none;}
+</style>
+"""
+
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 st.title("📄 Invoice AI Agent")
 
 branch_id = st.text_input("Enter Branch ID")
