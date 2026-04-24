@@ -3,25 +3,57 @@ import requests
 
 import streamlit as st
 
-hide_streamlit_style = """
+st.set_page_config(layout="centered")
+
+hide_streamlit = """
 <style>
+/* Hide header, menu, footer */
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 header {visibility: hidden;}
-.stDeployButton {display:none;}
-button[kind="header"] {display: none;}
+
+/* Hide "Hosted with Streamlit" */
+[data-testid="stToolbar"] {display: none !important;}
+[data-testid="stDecoration"] {display: none !important;}
+[data-testid="stStatusWidget"] {display: none !important;}
+[data-testid="stAppViewContainer"] > div:nth-child(1) {display:none;}
 </style>
 """
 
-st.set_page_config(
-    page_title="Invoice AI Agent",
-    layout="centered",
-    initial_sidebar_state="collapsed"
-)
+st.markdown("""
+<div style="
+    background-color:#0F63AC;
+    padding:15px;
+    border-radius:8px;
+    text-align:center;
+">
+    <h2 style="color:white; margin:0;">
+        HMIS - Invoice Processing AI Agent
+    </h2>
+</div>
+<br>
+""", unsafe_allow_html=True)
 
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+button_style = """
+<style>
+div.stButton > button {
+    background-color: #0F63AC;
+    color: white;
+    border-radius: 8px;
+    height: 45px;
+    width: 100%;
+    font-weight: bold;
+}
 
-st.title("📄 Invoice AI Agent")
+div.stButton > button:hover {
+    background-color: #0c4f8a;
+    color: white;
+}
+</style>
+"""
+st.markdown(button_style, unsafe_allow_html=True)
+
+# st.title("📄 Invoice AI Agent")
 
 branch_id = st.text_input("Enter Branch ID")
 
