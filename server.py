@@ -20,7 +20,7 @@ def process_invoice():
             file.filename
         )
 
-        # ✅ Create fresh DB connection
+        # Create fresh DB connection
         conn = pymysql.connect(
             host=os.getenv("DB_HOST"),
             user=os.getenv("DB_USER"),
