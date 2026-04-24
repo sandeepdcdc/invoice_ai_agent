@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import pymysql
+import os
 from extractor import extract_invoice_data
 
 app = Flask(__name__)
@@ -21,10 +22,11 @@ def process_invoice():
 
         # ✅ Create fresh DB connection
         conn = pymysql.connect(
-            host="45.114.246.232",
-            user="root",
-            password="cia%23@08@#%OPD!@#",   # 🔴 update if needed
-            database="dcdclive_30_2026"
+            host=os.getenv("DB_HOST"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASS"),
+            database=os.getenv("DB_NAME"),
+            connect_timeout=10
         )
 
         cursor = conn.cursor()
@@ -47,6 +49,5 @@ def process_invoice():
         return jsonify({"error": str(e)}), 500
 
 
-if __name__ == '__main__':
-    print("🚀 Starting Flask server...")
-    app.run(host='127.0.0.1', port=5000, debug=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
