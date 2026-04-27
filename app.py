@@ -107,7 +107,9 @@ if st.button("Process Invoice"):
             # REMOVE LOADING MESSAGE
             status_placeholder.empty()
 
-            st.write("Status Code:", response.status_code)
+            # st.write("Status Code:", response.status_code)
+            if st.checkbox("Show Debug Info"):
+             st.write("Status Code:", response.status_code)
 
             if response.status_code != 200:
                 st.error("❌ API Error")
