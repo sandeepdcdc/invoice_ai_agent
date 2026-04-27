@@ -79,24 +79,35 @@ def extract_invoice_data(file_bytes, filename):
 
     lines = text.split("\n")
 
-    # 1️⃣ Priority: Total Due / Grand Total
+    # Step 1: PRIORITY - exact keywords
     for line in lines:
-        line_clean = line.strip()
-        line_clean = re.sub(r'\s+', ' ', line_clean)
+       line_clean = line.strip()
+       line_clean = re.sub(r'\s+', ' ', line_clean)
 
-        if re.search(r'(total\s*due|grand\s*total)', line_clean, re.IGNORECASE):
+       if re.search(r'(total\s*due|grand\s*total|amount\s*due)', line_clean, re.IGNORECASE):
+         match = re.search(r'([\d,]+\.\d{2})', line_clean)
+         if match:
+          amount = match.group(1)
+          break
+
+
+    # Step 2: fallback - ANY "Total" line (very important)
+    if amount == "0.00":
+      for line in lines:
+        line_clean = line.strip()
+
+        if re.search(r'\btotal\b', line_clean, re.IGNORECASE):
             match = re.search(r'([\d,]+\.\d{2})', line_clean)
             if match:
                 amount = match.group(1)
-                break
 
-    # 2️⃣ Fallback: last "Total"
+
+    # Step 3: last fallback (pick LAST number in doc)
     if amount == "0.00":
-        matches = re.findall(r'Total[^\d]*([\d,]+\.\d{2})', text, re.IGNORECASE)
+        matches = re.findall(r'([\d,]+\.\d{2})', text)
         if matches:
-            amount = matches[-1]
+           amount = matches[-1]
 
-    # 3️⃣ Cleanup
+
+    # Cleanup
     amount = amount.replace(",", "")
-
-    return invoice_no, amount
