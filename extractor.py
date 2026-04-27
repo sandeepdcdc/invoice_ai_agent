@@ -41,39 +41,37 @@ def extract_invoice_data(file_bytes, filename):
     # ==============================
     # STEP 2: Extract Invoice Number
     # ==============================
-
     invoice_no = "Not Found"
 
     # Pattern 1: Invoice # BPXINV-00550
-    match = re.search(
-    r'Invoice\s*#\s*([A-Z0-9\-]+)',
-    text,
-    re.IGNORECASE
-)
+    match1 = re.search(
+        r'Invoice\s*#\s*([A-Z0-9\-]+)',
+        text,
+        re.IGNORECASE
+    )
 
-    # Pattern 2: Invoice No / Number
-    if not match:
-        match = re.search(
+    # Pattern 2: Invoice Number / No
+    match2 = re.search(
         r'Invoice\s*(Number|No\.?)\s*[:\-]?\s*([A-Z0-9\-]+)',
         text,
         re.IGNORECASE
     )
-    if match:
-        invoice_no = match.group(2)
 
-    # If first pattern matched
-    else:
-     invoice_no = match.group(1)
+    if match1:
+        invoice_no = match1.group(1)
 
-    # Fallback: try generic line-based extraction
+    elif match2:
+        invoice_no = match2.group(2)
+
+    # Fallback
     if invoice_no == "Not Found":
-     for line in text.split("\n"):
-        if "invoice" in line.lower():
-            match = re.search(r'([A-Z0-9\-]{5,})', line)
-            if match:
-                invoice_no = match.group(1)
-                break
-       
+        for line in text.split("\n"):
+            if "invoice" in line.lower():
+                match = re.search(r'([A-Z0-9\-]{5,})', line)
+                if match:
+                    invoice_no = match.group(1)
+                    break
+
     # ==============================
     # STEP 3: Extract Amount
     # ==============================
@@ -83,21 +81,22 @@ def extract_invoice_data(file_bytes, filename):
 
     # 1️⃣ Priority: Total Due / Grand Total
     for line in lines:
-     line_clean = line.strip()
-     line_clean = re.sub(r'\s+', ' ', line_clean)
+        line_clean = line.strip()
+        line_clean = re.sub(r'\s+', ' ', line_clean)
 
-     if re.search(r'(total\s*due|grand\s*total)', line_clean, re.IGNORECASE):
-           match = re.search(r'([\d,]+\.\d{2})', line_clean)
-           if match:
-              amount = match.group(1)
-              break
+        if re.search(r'(total\s*due|grand\s*total)', line_clean, re.IGNORECASE):
+            match = re.search(r'([\d,]+\.\d{2})', line_clean)
+            if match:
+                amount = match.group(1)
+                break
 
     # 2️⃣ Fallback: last "Total"
     if amount == "0.00":
-       matches = re.findall(r'Total[^\d]*([\d,]+\.\d{2})', text, re.IGNORECASE)
-    if matches:
-        amount = matches[-1]
+        matches = re.findall(r'Total[^\d]*([\d,]+\.\d{2})', text, re.IGNORECASE)
+        if matches:
+            amount = matches[-1]
 
     # 3️⃣ Cleanup
     amount = amount.replace(",", "")
-   
+
+    return invoice_no, amount
