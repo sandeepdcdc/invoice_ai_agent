@@ -10,107 +10,99 @@ pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tessera
 
 def extract_invoice_data(file_bytes, filename):
 
-    text = ""
+    try:
+        text = ""
 
-    # ==============================
-    # STEP 1: Extract text
-    # ==============================
-    if filename.lower().endswith(".pdf"):
-        try:
-            with open("temp.pdf", "wb") as f:
-                f.write(file_bytes)
+        # ==============================
+        # STEP 1: Extract text
+        # ==============================
+        if filename.lower().endswith(".pdf"):
+            try:
+                with open("temp.pdf", "wb") as f:
+                    f.write(file_bytes)
 
-            text = extract_text("temp.pdf")
+                text = extract_text("temp.pdf")
 
-            if len(text.strip()) < 50:
-                raise Exception("Low text")
+                if len(text.strip()) < 50:
+                    raise Exception("Low text")
 
-        except:
-            images = convert_from_bytes(file_bytes)
-            for img in images:
-                text += pytesseract.image_to_string(img)
+            except:
+                images = convert_from_bytes(file_bytes)
+                for img in images:
+                    text += pytesseract.image_to_string(img)
 
-    else:
-        image = Image.open(io.BytesIO(file_bytes))
-        text = pytesseract.image_to_string(image)
+        else:
+            image = Image.open(io.BytesIO(file_bytes))
+            text = pytesseract.image_to_string(image)
 
-    print("\n===== RAW TEXT =====\n")
-    print(text)
-    print("\n====================\n")
+        print("\n===== RAW TEXT =====\n")
+        print(text)
+        print("\n====================\n")
 
-    # ==============================
-    # STEP 2: Extract Invoice Number
-    # ==============================
-    invoice_no = "Not Found"
+        # ==============================
+        # STEP 2: Extract Invoice Number
+        # ==============================
+        invoice_no = "Not Found"
 
-    # Pattern 1: Invoice # BPXINV-00550
-    match1 = re.search(
-        r'Invoice\s*#\s*([A-Z0-9\-]+)',
-        text,
-        re.IGNORECASE
-    )
+        match1 = re.search(r'Invoice\s*#\s*([A-Z0-9\-]+)', text, re.IGNORECASE)
+        match2 = re.search(r'Invoice\s*(Number|No\.?)\s*[:\-]?\s*([A-Z0-9\-]+)', text, re.IGNORECASE)
 
-    # Pattern 2: Invoice Number / No
-    match2 = re.search(
-        r'Invoice\s*(Number|No\.?)\s*[:\-]?\s*([A-Z0-9\-]+)',
-        text,
-        re.IGNORECASE
-    )
+        if match1:
+            invoice_no = match1.group(1)
+        elif match2:
+            invoice_no = match2.group(2)
 
-    if match1:
-        invoice_no = match1.group(1)
+        # fallback
+        if invoice_no == "Not Found":
+            for line in text.split("\n"):
+                if "invoice" in line.lower():
+                    match = re.search(r'([A-Z0-9\-]{5,})', line)
+                    if match:
+                        invoice_no = match.group(1)
+                        break
 
-    elif match2:
-        invoice_no = match2.group(2)
+        # ==============================
+        # STEP 3: Extract Amount
+        # ==============================
+        amount = "0.00"
 
-    # Fallback
-    if invoice_no == "Not Found":
-        for line in text.split("\n"):
-            if "invoice" in line.lower():
-                match = re.search(r'([A-Z0-9\-]{5,})', line)
+        lines = text.split("\n")
+        total_values = []
+
+        # Step 1: PRIORITY keywords
+        for line in lines:
+            line_clean = line.strip()
+            line_clean = re.sub(r'\s+', ' ', line_clean)
+
+            if re.search(r'(total\s*due|grand\s*total|amount\s*due)', line_clean, re.IGNORECASE):
+                match = re.search(r'([\d,]+\.\d{2})', line_clean)
                 if match:
-                    invoice_no = match.group(1)
-                    break
+                    val = match.group(1).replace(",", "").replace("O", "0")
+                    total_values.append(float(val))
 
-    # ==============================
-    # STEP 3: Extract Amount
-    # ==============================
-    amount = "0.00"
+        # Step 2: ALL "Total" lines
+        for line in lines:
+            line_clean = line.strip()
 
-    lines = text.split("\n")
-    total_values = []
+            if re.search(r'\btotal\b', line_clean, re.IGNORECASE):
+                match = re.search(r'([\d,]+\.\d{2})', line_clean)
+                if match:
+                    val = match.group(1).replace(",", "").replace("O", "0")
+                    total_values.append(float(val))
 
-    # Step 1: PRIORITY keywords
-    for line in lines:
-      line_clean = line.strip()
-      line_clean = re.sub(r'\s+', ' ', line_clean)
-
-    if re.search(r'(total\s*due|grand\s*total|amount\s*due)', line_clean, re.IGNORECASE):
-        match = re.search(r'([\d,]+\.?\d{2})', line_clean)
-        if match:
-            val = match.group(1).replace(",", "")
-            val = val.replace("O", "0")  # OCR fix
-            total_values.append(float(val))
-
-    # Step 2: ALL "Total" lines
-    for line in lines:
-        line_clean = line.strip()
-
-    if re.search(r'\btotal\b', line_clean, re.IGNORECASE):
-        match = re.search(r'([\d,]+\.?\d{2})', line_clean)
-        if match:
-            val = match.group(1).replace(",", "")
-            val = val.replace("O", "0")
-            total_values.append(float(val))
-
-    # Step 3: fallback (any number in doc)
+        # Step 3: fallback
         if not total_values:
             matches = re.findall(r'([\d,]+\.\d{2})', text)
-    for m in matches:
-        val = m.replace(",", "")
-        val = val.replace("O", "0")
-        total_values.append(float(val))
+            for m in matches:
+                val = m.replace(",", "").replace("O", "0")
+                total_values.append(float(val))
 
-    # FINAL: pick max value
-    if total_values:
-      amount = str(max(total_values))
+        # FINAL: pick max
+        if total_values:
+            amount = str(max(total_values))
+
+        return invoice_no, amount
+
+    except Exception as e:
+        print("ERROR:", str(e))
+        return "Not Found", "0.00"
