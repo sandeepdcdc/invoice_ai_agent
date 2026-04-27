@@ -1,5 +1,7 @@
 import streamlit as st
 import requests
+import time
+import requests
 
 import streamlit as st
 
@@ -91,42 +93,59 @@ if st.button("Process Invoice"):
 
     if file and branch_id:
 
-        try:
-            response = requests.post(
-                "https://invoice-ai-agent-nafo.onrender.com/process",
-                files={"file": file},
-                data={"branch_id": branch_id},
-                timeout=20
-            )
+        url = "https://invoice-ai-agent-nafo.onrender.com/process"
+        response = None
 
-            # 🔍 Debug (VERY IMPORTANT)
-            st.write("Status Code:", response.status_code)
-
-            # ❌ If API failed
-            if response.status_code != 200:
-                st.error("API Error")
-                st.write(response.text)
-                st.stop()
-
-            # ✅ Parse JSON safely
+        # 🔁 Retry logic (handles Render sleep)
+        for attempt in range(2):
             try:
-                result = response.json()
-            except:
-                st.error("Invalid JSON response from server")
-                st.write(response.text)
-                st.stop()
+                if attempt == 0:
+                    st.info("⏳ Connecting to server...")
+                else:
+                    st.warning("🔄 Retrying... Server waking up")
 
-            # ✅ Safe extraction
-            invoice_no = result.get("invoice_no", "Not Found")
-            amount = result.get("amount", "0")
+                response = requests.post(
+                    url,
+                    files={"file": file},
+                    data={"branch_id": branch_id},
+                    timeout=40   # increased timeout
+                )
 
-            st.success("✅ Processed Successfully")
-            st.write("Invoice No:", invoice_no)
-            st.write("Amount:", amount)
+                if response.status_code == 200:
+                    break
 
-        except requests.exceptions.RequestException as e:
-            st.error("Server is not reachable (Render may be sleeping)")
-            st.write(str(e))
+            except requests.exceptions.RequestException:
+                time.sleep(5)
+
+        # ❌ If still failed
+        if response is None:
+            st.error("❌ Server not reachable. Please try again.")
+            st.stop()
+
+        # 🔍 Debug
+        st.write("Status Code:", response.status_code)
+
+        # ❌ API error
+        if response.status_code != 200:
+            st.error("❌ API Error")
+            st.write(response.text)
+            st.stop()
+
+        # ✅ Safe JSON parse
+        try:
+            result = response.json()
+        except:
+            st.error("❌ Invalid response from server")
+            st.write(response.text)
+            st.stop()
+
+        # ✅ Safe extraction
+        invoice_no = result.get("invoice_no", "Not Found")
+        amount = result.get("amount", "0")
+
+        st.success("✅ Processed Successfully")
+        st.write("Invoice No:", invoice_no)
+        st.write("Amount:", amount)
 
     else:
         st.error("Please enter all details")
