@@ -92,10 +92,12 @@ def extract_invoice_data(file_bytes, filename):
 
         # Step 3: fallback
         if not total_values:
-            matches = re.findall(r'([\d,]+\.\d{2})', text)
-            for m in matches:
-                val = m.replace(",", "").replace("O", "0")
-                total_values.append(float(val))
+         matches = re.findall(r'([\d,]+\.\d{2})', text)
+
+        for m in matches:
+          val = m.replace(",", "")
+          val = val.replace("O", "0")
+          total_values.append(float(val))
 
         # FINAL: pick max
         if total_values:
