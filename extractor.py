@@ -78,36 +78,39 @@ def extract_invoice_data(file_bytes, filename):
     amount = "0.00"
 
     lines = text.split("\n")
+    total_values = []
 
-    # Step 1: PRIORITY - exact keywords
+    # Step 1: PRIORITY keywords
     for line in lines:
-       line_clean = line.strip()
-       line_clean = re.sub(r'\s+', ' ', line_clean)
+      line_clean = line.strip()
+      line_clean = re.sub(r'\s+', ' ', line_clean)
 
-       if re.search(r'(total\s*due|grand\s*total|amount\s*due)', line_clean, re.IGNORECASE):
-         match = re.search(r'([\d,]+\.\d{2})', line_clean)
-         if match:
-          amount = match.group(1)
-          break
+    if re.search(r'(total\s*due|grand\s*total|amount\s*due)', line_clean, re.IGNORECASE):
+        match = re.search(r'([\d,]+\.?\d{2})', line_clean)
+        if match:
+            val = match.group(1).replace(",", "")
+            val = val.replace("O", "0")  # OCR fix
+            total_values.append(float(val))
 
-
-    # Step 2: fallback - ANY "Total" line (very important)
-    if amount == "0.00":
-      for line in lines:
+    # Step 2: ALL "Total" lines
+    for line in lines:
         line_clean = line.strip()
 
-        if re.search(r'\btotal\b', line_clean, re.IGNORECASE):
-            match = re.search(r'([\d,]+\.\d{2})', line_clean)
-            if match:
-                amount = match.group(1)
+    if re.search(r'\btotal\b', line_clean, re.IGNORECASE):
+        match = re.search(r'([\d,]+\.?\d{2})', line_clean)
+        if match:
+            val = match.group(1).replace(",", "")
+            val = val.replace("O", "0")
+            total_values.append(float(val))
 
+    # Step 3: fallback (any number in doc)
+        if not total_values:
+            matches = re.findall(r'([\d,]+\.\d{2})', text)
+    for m in matches:
+        val = m.replace(",", "")
+        val = val.replace("O", "0")
+        total_values.append(float(val))
 
-    # Step 3: last fallback (pick LAST number in doc)
-    if amount == "0.00":
-        matches = re.findall(r'([\d,]+\.\d{2})', text)
-        if matches:
-           amount = matches[-1]
-
-
-    # Cleanup
-    amount = amount.replace(",", "")
+    # FINAL: pick max value
+    if total_values:
+      amount = str(max(total_values))
