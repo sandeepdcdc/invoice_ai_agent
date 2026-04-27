@@ -93,59 +93,45 @@ if st.button("Process Invoice"):
 
     if file and branch_id:
 
-        url = "https://invoice-ai-agent-nafo.onrender.com/process"
-        response = None
+        status_placeholder = st.empty()
+        status_placeholder.info("⏳ Connecting to server...")
 
-        # 🔁 Retry logic (handles Render sleep)
-        for attempt in range(2):
-            try:
-                if attempt == 0:
-                    st.info("⏳ Connecting to server...")
-                else:
-                    st.warning("🔄 Retrying... Server waking up")
-
-                response = requests.post(
-                    url,
-                    files={"file": file},
-                    data={"branch_id": branch_id},
-                    timeout=40   # increased timeout
-                )
-
-                if response.status_code == 200:
-                    break
-
-            except requests.exceptions.RequestException:
-                time.sleep(5)
-
-        # ❌ If still failed
-        if response is None:
-            st.error("❌ Server not reachable. Please try again.")
-            st.stop()
-
-        # 🔍 Debug
-        st.write("Status Code:", response.status_code)
-
-        # ❌ API error
-        if response.status_code != 200:
-            st.error("❌ API Error")
-            st.write(response.text)
-            st.stop()
-
-        # ✅ Safe JSON parse
         try:
-            result = response.json()
-        except:
-            st.error("❌ Invalid response from server")
-            st.write(response.text)
-            st.stop()
+            response = requests.post(
+                "https://invoice-ai-agent-nafo.onrender.com/process",
+                files={"file": file},
+                data={"branch_id": branch_id},
+                timeout=60
+            )
 
-        # ✅ Safe extraction
-        invoice_no = result.get("invoice_no", "Not Found")
-        amount = result.get("amount", "0")
+            # REMOVE LOADING MESSAGE
+            status_placeholder.empty()
 
-        st.success("✅ Processed Successfully")
-        st.write("Invoice No:", invoice_no)
-        st.write("Amount:", amount)
+            st.write("Status Code:", response.status_code)
+
+            if response.status_code != 200:
+                st.error("❌ API Error")
+                st.write(response.text)
+                st.stop()
+
+            try:
+                result = response.json()
+            except:
+                st.error("Invalid JSON response")
+                st.write(response.text)
+                st.stop()
+
+            invoice_no = result.get("invoice_no", "Not Found")
+            amount = result.get("amount", "0")
+
+            st.success("✅ Processed Successfully")
+            st.write("Invoice No:", invoice_no)
+            st.write("Amount:", amount)
+
+        except requests.exceptions.RequestException as e:
+            status_placeholder.empty()
+            st.error("🚨 Server not reachable")
+            st.write(str(e))
 
     else:
         st.error("Please enter all details")
