@@ -101,7 +101,7 @@ if st.button("Process Invoice"):
                 "https://invoice-ai-agent-nafo.onrender.com/process",
                 files={"file": file},
                 data={"branch_id": branch_id},
-                timeout=60
+                timeout=120
             )
 
             # REMOVE LOADING MESSAGE
